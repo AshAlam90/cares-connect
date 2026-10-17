@@ -48,7 +48,7 @@ With textbook losses the model over-predicts by about 16%. That points to real-w
 
 ## What the prototype shows
 
-1. **Real solar villages.** Map, facts, reported outcomes, sources, and the model check above.
+1. **Solar villages.** Map, facts, reported outcomes, sources, and the model check above.
 2. **Communities** (Sri Lanka in English, Bangladesh in English or Bangla). Request form with a map pin, local districts and land units (acres or bigha), and a personal dashboard with a progress tracker.
 3. **CARES units.** A queue of requests in their districts. The design tool covers:
    - live NASA POWER sunshine data;
@@ -60,9 +60,11 @@ With textbook losses the model over-predicts by about 16%. That points to real-w
 
    Real sites open as locked *as-built* models.
 4. **Funders.** Open projects with transparent cost breakdowns, a track-record tab of the real sites, pledging, and a dashboard with their share of impact in pounds across currencies.
-5. **Overview & scenarios.**
+5. **Plan & scenarios.**
    - **Sri Lanka:** what a national programme of N village roofs would cost and earn, and how payback depends on the Net-Plus tariff.
    - **Bangladesh:** how a subsidy changes community payback for solar irrigation hubs.
+
+Use **Try a role** (top right) to see the app as a village committee, a university CARES unit or a funder. Each role gets its own navigation and dashboard.
 
 ## Where the numbers come from
 
@@ -107,14 +109,16 @@ pytest              # 26 tests: physics, finance, Net-Plus, field calibration, r
 
 ## Put it online (free, about 10 minutes)
 
-1. Create a new **public** GitHub repository and upload everything in this folder.
+1. Create a new **public** GitHub repository and upload everything in this folder, **including the hidden `.streamlit` folder** (it holds the colours and font) and the `assets` folder (the logo). On a Mac, press Cmd+Shift+. in Finder to see hidden folders. If it is missing, use *Add file → Create new file* on GitHub, name it `.streamlit/config.toml` and paste in the contents.
 2. Go to **share.streamlit.io**, sign in with GitHub, choose **Create app**, pick the repository and set the main file to `app.py`.
 3. Deploy. Live NASA POWER data then replaces the built-in values.
 
 ## Project structure
 
 ```
-app.py                 navigation, sign-in switcher and setup
+app.py                 top navigation (each role sees its own pages), account menu, footer
+.streamlit/config.toml brand theme: colours, Noto Sans font, corner radius
+assets/                logo
 views/                 one file per screen (home, villages, dashboard, account, local, cares, funders, overview)
 engine/                the calculation engine: no user interface code
   countries.py         Sri Lanka and Bangladesh settings (costs, tariffs, units, districts, climate fallback)

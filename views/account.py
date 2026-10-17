@@ -5,13 +5,11 @@ from app_core.i18n import OPTIONS
 from engine import COUNTRIES
 
 st.title("Sign in or register")
-st.write("Each of the three fronts gets its own dashboard. Communities follow their requests, "
-         "CARES units manage their queue and projects, and funders track their pledges and impact.")
-ui.disclaimer()
+st.markdown("Each role has its own dashboard. Pick a demo profile or create your own (no password needed).")
 
 user = auth.current_user()
 if user:
-    with st.container(border=True):
+    with ui.card("me"):
         st.markdown(f"**{auth.label(user)}**  \n{user['name']}")
         c1, c2, _ = st.columns([1, 1, 3])
         if c1.button("Go to my dashboard", type="primary"):

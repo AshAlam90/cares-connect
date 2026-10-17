@@ -11,6 +11,10 @@ import streamlit as st
 from . import store
 
 ROLE_ICON = {"community": "🧑‍🌾", "cares": "🎓", "funder": "🤝"}
+ROLE_MATERIAL = {"community": ":material/agriculture:", "cares": ":material/school:",
+                 "funder": ":material/volunteer_activism:"}
+# Which fictional demo profile each "try a role" button opens
+DEMO_PICK = {"community": "Demo village committee", "cares": "North & East", "funder": "Example Climate Foundation"}
 
 
 def current_user() -> dict | None:
@@ -33,19 +37,46 @@ def label(u: dict) -> str:
     return f"{ROLE_ICON[u['role']]} {store.ROLES[u['role']]} · {u['organisation']}"
 
 
-def sidebar_switcher() -> None:
-    """Quick profile switcher, so a demo can move between the three fronts in seconds."""
-    users = store.list_users()
-    cur = st.session_state.get("user_id")
-    options = [None] + [u["id"] for u in users]
-    names = {u["id"]: label(u) for u in users}
-    key = f"switch_{cur}"           # new widget whenever the user changes elsewhere
+def short_org(u: dict, n: int = 30) -> str:
+    org = u["organisation"].replace(" (fictional)", "").replace("Demo CARES unit · ", "")
+    return org if len(org) <= n else org[: n - 1] + "…"
 
-    def _changed():
-        v = st.session_state[key]
-        sign_out() if v is None else sign_in(v)
 
-    st.selectbox("Signed in as (demo switch)", options,
-                 index=options.index(cur) if cur in options else 0,
-                 format_func=lambda x: "Not signed in" if x is None else names[x],
-                 key=key, on_change=_changed)
+def demo_user(role: str) -> dict | None:
+    users = store.list_users(role)
+    want = DEMO_PICK[role]
+    return next((u for u in users if want in u["organisation"]), users[0] if users else None)
+
+
+def sign_in_demo(role: str) -> bool:
+    u = demo_user(role)
+    if u:
+        sign_in(u["id"])
+    return bool(u)
+
+
+def account_menu() -> None:
+    """Top-right account menu: who you are, your dashboard, and one-click demo roles."""
+    user = current_user()
+    with st.container(horizontal=True, horizontal_alignment="right", key="account_bar"):
+        text = f"{short_org(user, 26)}" if user else "Try a role"
+        icon = ROLE_MATERIAL[user["role"]] if user else ":material/person:"
+        with st.popover(text, icon=icon):
+            if user:
+                st.markdown(f"**{user['organisation']}**  \n{store.ROLES[user['role']]} · {user['name']}")
+                c1, c2 = st.columns(2)
+                if c1.button("Dashboard", icon=":material/dashboard:", type="primary", width="stretch"):
+                    st.switch_page("views/dashboard.py")
+                if c2.button("Sign out", icon=":material/logout:", width="stretch"):
+                    sign_out()
+                    st.switch_page("views/home.py")
+                st.divider()
+            st.markdown("**See the app as…**")
+            st.caption("Fictional demo profiles, no password needed.")
+            for role, name in (("community", "A village committee"), ("cares", "A university CARES unit"),
+                               ("funder", "A funder")):
+                current = bool(user and user["id"] == (demo_user(role) or {}).get("id"))
+                if st.button(name, icon=ROLE_MATERIAL[role], key=f"demo_{role}", width="stretch", disabled=current):
+                    sign_in_demo(role)
+                    st.switch_page("views/dashboard.py")
+            st.page_link("views/account.py", label="Other profiles, or register your own", icon=":material/badge:")

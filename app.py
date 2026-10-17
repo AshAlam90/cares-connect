@@ -1,30 +1,41 @@
-"""CARES Connect - entry point.  Run with:  streamlit run app.py"""
 import streamlit as st
 
-from app_core import auth, store
-from app_core.ui import DISCLAIMER
+from app_core import auth, store, ui
 
-st.set_page_config(page_title="CARES Connect", page_icon="☀️", layout="wide")
+st.set_page_config(page_title="CARES Connect", page_icon="☀️", layout="wide", initial_sidebar_state="collapsed")
 store.init_db()
+st.logo("assets/logo.svg", size="large")
+ui.inject_css()
 
-pages = {
-    "": [st.Page("views/home.py", title="Home", icon=":material/home:", default=True),
-         st.Page("views/villages.py", title="Real solar villages", icon=":material/solar_power:")],
-    "My account": [
-        st.Page("views/dashboard.py", title="My dashboard", icon=":material/dashboard:"),
-        st.Page("views/account.py", title="Sign in or register", icon=":material/login:"),
-    ],
-    "The three fronts": [
-        st.Page("views/local.py", title="1 · Locals: ask for help", icon=":material/agriculture:"),
-        st.Page("views/cares.py", title="2 · CARES: design a solution", icon=":material/engineering:"),
-        st.Page("views/funders.py", title="3 · Funders: back a project", icon=":material/volunteer_activism:"),
-    ],
-    "For government": [
-        st.Page("views/overview.py", title="4 · Overview & scenarios", icon=":material/map:"),
-    ],
+user = auth.current_user()
+role = user["role"] if user else None
+
+PAGES = {   # key: (file, title, icon, url)
+    "home": ("views/home.py", "Home", ":material/home:", None),
+    "dash": ("views/dashboard.py", {"community": "My requests", "cares": "My queue", "funder": "My impact"}
+             .get(role, "My dashboard"), ":material/dashboard:", "dashboard"),
+    "villages": ("views/villages.py", "Solar villages", ":material/solar_power:", "villages"),
+    "ask": ("views/local.py", "Ask for help", ":material/campaign:", "ask"),
+    "design": ("views/cares.py", "Design tool", ":material/engineering:", "design"),
+    "fund": ("views/funders.py", "Fund a project", ":material/volunteer_activism:", "fund"),
+    "plan": ("views/overview.py", "Plan & scenarios", ":material/map:", "plan"),
+    "account": ("views/account.py", "Sign in", ":material/login:", "sign-in"),
 }
-nav = st.navigation(pages)
-with st.sidebar:
-    auth.sidebar_switcher()
-    st.caption(DISCLAIMER)
+# Each role sees its own pages; every page stays reachable by link
+VISIBLE = {
+    None: ["home", "villages", "ask", "design", "fund", "plan"],
+    "community": ["home", "dash", "ask", "villages"],
+    "cares": ["home", "dash", "design", "villages", "plan"],
+    "funder": ["home", "dash", "fund", "villages", "plan"],
+}[role]
+order = VISIBLE + [k for k in PAGES if k not in VISIBLE]
+pages = [st.Page(PAGES[k][0], title=PAGES[k][1], icon=PAGES[k][2], url_path=PAGES[k][3], default=(k == "home"),
+                 visibility="visible" if k in VISIBLE else "hidden") for k in order]
+nav = st.navigation(pages, position="top")
+
+auth.account_menu()
 nav.run()
+
+with st.container(key="footer"):
+    st.caption(f"{ui.DISCLAIMER} Built on public information from "
+               "[Solar Village SDG](https://www.solarvillagesdg.org/projects) and its project report.")

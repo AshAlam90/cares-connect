@@ -7,13 +7,6 @@ from app_core.summary import summary
 from engine import COUNTRIES
 
 user = auth.current_user()
-if not user:
-    st.title("My dashboard")
-    st.info("Sign in to see your dashboard. Demo profiles are ready for all three fronts, "
-            "or you can register your own.")
-    st.page_link("views/account.py", label="Sign in or register", icon=":material/login:")
-    st.stop()
-
 projects = store.list_projects()
 by_id = {p["id"]: p for p in projects}
 
@@ -37,27 +30,27 @@ def community_dashboard(u: dict) -> None:
 
     st.title(t("dash_title", lang))
     st.caption(f"{t('signed_in_as', lang)}: {u['organisation']} · {u['district']}, {COUNTRIES[cc]['name']}")
-    ui.disclaimer()
 
     mine = [p for p in projects if p["user_id"] == u["id"]]
     m1, m2, m3 = st.columns(3)
-    m1.metric(t("m_requests", lang), num(len(mine)))
-    m2.metric(t("m_designed", lang), num(sum(1 for p in mine if p["design"])))
-    m3.metric(t("m_funded", lang), num(sum(1 for p in mine if p["status"] in ("Funded", "Operating"))))
+    m1.metric(t("m_requests", lang), num(len(mine)), border=True)
+    m2.metric(t("m_designed", lang), num(sum(1 for p in mine if p["design"])), border=True)
+    m3.metric(t("m_funded", lang), num(sum(1 for p in mine if p["status"] in ("Funded", "Operating"))), border=True)
 
     if not mine:
         st.caption(t("no_requests", lang))
     for p in reversed(mine):
         pc = p["country"]
-        with st.container(border=True):
-            st.markdown(f"#### {p['village']} · {p['ref']}")
+        with ui.card(f"req_{p['id']}"):
+            st.subheader(f"{p['village']} · {ui.bn_digits(p['ref']) if lang == 'bn' else p['ref']}", anchor=False)
             step = store.STATUSES.index(p["status"])
-            cols = st.columns(6)
-            for i, label in enumerate(STEPS[lang]):
-                cols[i].markdown(f"{'✅' if i <= step else '⬜'} {label}")   # icon + text, never colour alone
+            ui.badges(*[ui.badge(label, "green", ":material/check_circle:") if i < step else
+                        ui.badge(label, "blue", ":material/radio_button_checked:") if i == step else
+                        ui.badge(label, "gray", ":material/radio_button_unchecked:")
+                        for i, label in enumerate(STEPS[lang])])   # icon + text, never colour alone
             if p["design"]:
                 F, I = p["results"]["finance"], p["results"]["impact"]
-                a, b, c, d = st.columns(4)
+                a, b, c, d = st.container(key=f"kpis_req_{p['id']}").columns(4)
                 a.metric(t("total_cost", lang), ui.fmt_money_lang(F["capex"], pc, lang))
                 b.metric(t("your_share", lang), ui.fmt_money_lang(F["community_share"], pc, lang))
                 cpb = F["community_payback"]
@@ -85,14 +78,13 @@ def cares_dashboard(u: dict) -> None:
     st.title(u["organisation"])
     st.caption(f"CARES unit dashboard · {COUNTRIES[cc]['name']} · Districts covered: "
                + (", ".join(sorted(cov)) if len(cov) < 12 else f"all {len(cov)}"))
-    ui.disclaimer()
 
     in_area = lambda p: p["country"] == cc and p["district"] in cov
     queue = [p for p in projects if p["status"] == "New request" and in_area(p)]
     ours = [p for p in projects if p["cares_user_id"] == u["id"]]
     real_here = [p for p in projects if p["kind"] == "real" and p["status"] in ("Operating", "Funded") and in_area(p)]
     count = lambda *s: sum(1 for p in ours if p["status"] in s)
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4 = st.container(key="kpis_cares").columns(4)
     m1.metric("New requests in your districts", len(queue), border=True)
     m2.metric("Drafts not yet published", count("Designed"), border=True)
     m3.metric("Seeking funding", count("Published", "Partly funded"), border=True)
@@ -102,7 +94,7 @@ def cares_dashboard(u: dict) -> None:
     if not queue:
         st.caption("No new requests in your districts.")
     for p in queue:
-        with st.container(border=True):
+        with ui.card(f"queue_{p['id']}"):
             a, b, c, d = st.columns([3, 2, 3, 2], vertical_alignment="center")
             a.markdown(f"**{p['village']}**, {p['district']}  \n{p['ref']} · received {p['created']}")
             unit = COUNTRIES[p["country"]]["land_unit"]
@@ -121,7 +113,7 @@ def cares_dashboard(u: dict) -> None:
         st.caption("You haven't designed any projects yet.")
     else:
         df = pd.DataFrame([{
-            "Ref": p["ref"], "Village": p["village"], "District": p["district"], "Status": ui.status_badge(p["status"]),
+            "Ref": p["ref"], "Village": p["village"], "District": p["district"], "Status": ui.status_text(p["status"]),
             "Equipment": ui.fmt_money(p["results"]["finance"]["capex"], p["country"]),
             "Funding": funding_share(p),
             "Payback (yrs)": round(p["results"]["finance"]["simple_payback"] or 0, 1),
@@ -144,9 +136,9 @@ def cares_dashboard(u: dict) -> None:
     fin = lambda s: [(p["results"]["finance"], p["country"]) for p in ours if p["status"] in s]
     tot = lambda pairs, key: sum(ui.to_gbp(f[key], c) for f, c in pairs)
     i1, i2, i3 = st.columns(3)
-    i1.metric("Design fees earned (funded)", f"≈ £{tot(fin(('Funded', 'Operating')), 'cares_design_fee'):,.0f}")
-    i2.metric("Design fees in the pipeline", f"≈ £{tot(fin(('Published', 'Partly funded')), 'cares_design_fee'):,.0f}")
-    i3.metric("Yearly support share (funded)", f"≈ £{tot(fin(('Funded', 'Operating')), 'cares_mgmt_year1'):,.0f}")
+    i1.metric("Design fees earned (funded)", f"≈ £{tot(fin(('Funded', 'Operating')), 'cares_design_fee'):,.0f}", border=True)
+    i2.metric("Design fees in the pipeline", f"≈ £{tot(fin(('Published', 'Partly funded')), 'cares_design_fee'):,.0f}", border=True)
+    i3.metric("Yearly support share (funded)", f"≈ £{tot(fin(('Funded', 'Operating')), 'cares_mgmt_year1'):,.0f}", border=True)
     st.caption("The CARES model: funders pay a design and facilitation fee, and each project shares a small part "
                "of its yearly benefit so the unit can keep supporting the community after installation.")
 
@@ -161,7 +153,6 @@ def funder_dashboard(u: dict) -> None:
     if interests.get("solutions"):
         bits.append("Interested in: " + ", ".join(interests["solutions"]))
     st.caption("Funder dashboard · " + " · ".join(bits))
-    ui.disclaimer()
 
     pledges = store.pledges_by_user(u["id"])
     mine: dict[int, float] = {}
@@ -172,7 +163,7 @@ def funder_dashboard(u: dict) -> None:
     share = {p["id"]: mine[p["id"]] / p["results"]["finance"]["funder_total"] for p in backed}
     co2_share = sum(share[p["id"]] * p["results"]["impact"]["co2_t"] for p in backed)
 
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4 = st.container(key="kpis_funder").columns(4)
     m1.metric("Total pledged", f"≈ £{total_gbp:,.0f}", help="Pledges in Rs and Tk converted at assumed rates", border=True)
     m2.metric("Projects backed", len(backed), border=True)
     m3.metric("Households in projects you back", f"{sum(p['households'] for p in backed):,}" if backed else "0",
@@ -188,7 +179,7 @@ def funder_dashboard(u: dict) -> None:
             "Date": x["created"], "Village": by_id[x["project_id"]]["village"],
             "District": by_id[x["project_id"]]["district"],
             "Your pledge": ui.fmt_money(x["amount"], by_id[x["project_id"]]["country"]),
-            "Project status": ui.status_badge(by_id[x["project_id"]]["status"]),
+            "Project status": ui.status_text(by_id[x["project_id"]]["status"]),
             "Project funded": funding_share(by_id[x["project_id"]])} for x in pledges]),
             hide_index=True, column_config={
                 "Project funded": st.column_config.ProgressColumn(min_value=0, max_value=1, format="percent")})
@@ -205,7 +196,7 @@ def funder_dashboard(u: dict) -> None:
     for p in match[:3]:
         F, I, pc = p["results"]["finance"], p["results"]["impact"], p["country"]
         why = ([p["district"]] if p["district"] in want_d else []) + sorted(want_s & set(p["needs"]))
-        with st.container(border=True):
+        with ui.card(f"rec_{p['id']}"):
             a, b = st.columns([4, 1], vertical_alignment="center")
             a.markdown(f"**{ui.place(p)}** · {ui.status_badge(p['status'])}  \n"
                        f"Still needs {ui.fmt_money(max(0, F['funder_total'] - p['pledged']), pc)} · "
@@ -217,4 +208,23 @@ def funder_dashboard(u: dict) -> None:
                  icon=":material/solar_power:")
 
 
-{"community": community_dashboard, "cares": cares_dashboard, "funder": funder_dashboard}[user["role"]](user)
+def anon_dashboard() -> None:
+    st.title("My dashboard")
+    st.markdown("Each role has its own dashboard. Pick one to look around: these are fictional demo profiles.")
+    ROLES = [("community", "A village committee", "Follow your requests from design to funding.", "community"),
+             ("cares", "A university CARES unit", "Work through requests in your districts and publish designs.", "cares"),
+             ("funder", "A funder", "Find projects that match your interests and track your impact.", "funder")]
+    for col, (role, title, text, key) in zip(st.columns(3), ROLES):
+        with col, ui.card(f"pick_{key}", height="stretch"):
+            st.subheader(title, anchor=False)
+            st.markdown(text)
+            if st.button("Open this dashboard", key=f"pick_{key}", icon=auth.ROLE_MATERIAL[role], type="primary"):
+                auth.sign_in_demo(role)
+                st.rerun()
+    st.page_link("views/account.py", label="Other profiles, or register your own", icon=":material/badge:")
+
+
+if user:
+    {"community": community_dashboard, "cares": cares_dashboard, "funder": funder_dashboard}[user["role"]](user)
+else:
+    anon_dashboard()

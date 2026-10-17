@@ -1,5 +1,26 @@
 [theme]
-primaryColor = "#0f7a55"
+base = "light"
+# Paddy green for actions, panel blue for headings, sun yellow only for what is working
+primaryColor = "#1E6B3C"
+backgroundColor = "#F3F6F4"
+secondaryBackgroundColor = "#E3EBE5"
+textColor = "#1B2A24"
+linkColor = "#1E6B3C"
+borderColor = "#CFDAD2"
+showWidgetBorder = true
+baseRadius = "0.6rem"
+buttonRadius = "0.6rem"
+# Noto Sans; Bangla text falls back to the device's Bengali font
+font = "Noto Sans:https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap, sans-serif"
+headingFontWeights = [800, 700, 700, 600, 600, 600]
+headingFontSizes = ["2.4rem", "1.7rem", "1.3rem", "1.1rem", "1rem", "0.9rem"]
+metricValueFontWeight = 700
+metricValueFontSize = "1.9rem"
+greenColor = "#1E6B3C"
+blueColor = "#163A63"
+yellowColor = "#C99700"
+yellowBackgroundColor = "#FDF1C7"
+dataframeHeaderBackgroundColor = "#E3EBE5"
 
 [client]
 toolbarMode = "minimal"
