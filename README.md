@@ -6,8 +6,7 @@ A working prototype of a three-sided decision support tool for community solar e
 
 > **Independent prototype.** Real Solar Village sites come from public sources, linked in the app and below. Modelled figures are estimates. Sign-in profiles and pledges are fictional demo data. Not an official Solar Village SDG product.
 
-**Live demo:** _[CARES_Connect](https://cares-connect-solarvillagesdg.streamlit.app/
-)_ 
+**Live demo:** _[CARES_Connect](https://cares-connect-solarvillagesdg.streamlit.app/)_ 
 ---
 
 ## The idea
